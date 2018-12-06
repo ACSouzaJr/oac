@@ -18,7 +18,9 @@ entity inst_mem is
 		clk		: IN STD_LOGIC;
 		data		: IN STD_LOGIC_VECTOR (WIDTH-1 DOWNTO 0);
 		wren		: IN STD_LOGIC ;
-		q			: OUT STD_LOGIC_VECTOR (WIDTH-1 DOWNTO 0));
+		byteena	: IN std_LOGIC_VECTOR(3 downto 0);
+		q			: OUT STD_LOGIC_VECTOR (WIDTH-1 DOWNTO 0)
+			);
 end entity;
 
 architecture rtl of inst_mem is
@@ -78,13 +80,14 @@ end component;
 		power_up_uninitialized => "FALSE",
 		widthad_a => 8,
 		width_a => 32,
-		width_byteena_a => 1
+		width_byteena_a => 4
 	)
 	PORT MAP (
 		address_a => address,
 		clock0 => clk64,
 		data_a => data,
 		wren_a => wren,
+		byteena_a => byteena,
 		q_a => sub_wire0
 	);
 	

@@ -18,7 +18,13 @@ package mips_pkg is
 	-- Instrucoes do MIPs - OPCODES
 	constant iRTYPE		: std_logic_vector(5 downto 0) := "000000";
 	constant iLW			: std_logic_vector(5 downto 0) := "100011";
+	constant iLH			: std_logic_vector(5 downto 0) := "100001";
+	constant iLHU			: std_logic_vector(5 downto 0) := "100101";
+	constant iLB			: std_logic_vector(5 downto 0) := "100000";
+	constant iLBU			: std_logic_vector(5 downto 0) := "100100";
 	constant iSW			: std_logic_vector(5 downto 0) := "101011";
+	constant iSH			: std_logic_vector(5 downto 0) := "101001";
+	constant iSB			: std_logic_vector(5 downto 0) := "101000";
 	constant iADDI			: std_logic_vector(5 downto 0) := "001000";
 	constant iANDI			: std_logic_vector(5 downto 0) := "001100";
 	constant iORI			: std_logic_vector(5 downto 0) := "001101";
@@ -50,6 +56,44 @@ package mips_pkg is
 	constant ULA_SLL		: std_logic_vector(3 downto 0) := "1000"; -- 8
 	constant ULA_SRL		: std_logic_vector(3 downto 0) := "0011"; -- 3
 	constant ULA_SRA		: std_logic_vector(3 downto 0) := "0101"; -- 5
+	
+	component convbinario7seg is
+	  port(  
+				numbinario : in STD_LOGIC_VECTOR(3 downto 0);
+				num7seg : out STD_LOGIC_VECTOR(7 downto 0)
+		 );
+	end component;
+	
+	-- Binario para 7 segmentos
+	component MIPS_Mux4x1_ESCOLHER_SAIDA_7SEG is
+    Port ( 
+--			  Saida_PC : in  STD_LOGIC_VECTOR (31 downto 0);
+--           Saida_RI : in  STD_LOGIC_VECTOR (31 downto 0);
+--			  Saida_SaidaALU : in  STD_LOGIC_VECTOR (31 downto 0);
+--			  Saida_RDM: in  STD_LOGIC_VECTOR (31 downto 0);			  
+--           Seletor_Saida : in  STD_LOGIC_vector(1 downto 0);
+			  
+			  data  	: in std_logic_vector(31 downto 0);
+			  
+           Saida_Primeiro_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Segundo_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Terceiro_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Quarto_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Quinto_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Sexta_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Setimo_7seg : out STD_LOGIC_VECTOR(7 downto 0);
+			  Saida_Oitavo_7seg : out STD_LOGIC_VECTOR(7 downto 0)
+			  );
+			  
+		end component;
+		
+	component byte_ctl is
+	  port (
+		 store_ctl : in std_logic_vector(1 downto 0);	-- sw, sh or sb
+		 a1a0 : in std_logic_vector(1 downto 0);
+		 byteena : out STD_LOGIC_VECTOR (3 DOWNTO 0)
+	  ) ;
+	end component ;
 	
 	component mips_multi is
 	port 
@@ -117,6 +161,17 @@ package mips_pkg is
 		sel				: in std_logic_vector(1 downto 0);
 		m_out				: out std_logic_vector(W_SIZE-1 downto 0));
 	end component;	
+	
+	component mux_2_half is
+	generic (
+		SIZE : natural := 16
+	);
+	port (	
+		in0, in1	: in std_logic_vector(SIZE-1 downto 0);
+		sel		: in std_logic;
+		m_out		: out std_logic_vector(SIZE-1 downto 0)
+	);
+	end component;
 
 	component mux_4 is
 	generic (
@@ -127,6 +182,37 @@ package mips_pkg is
 		sel						: in std_logic_vector(1 downto 0);
 		m_out						: out std_logic_vector(W_SIZE-1 downto 0));
 	end component;
+	
+	component mux_4_byte is
+	generic (
+		W_SIZE 	: natural := 8
+			);
+	port (
+	 	in0, in1, in2, in3	: in std_logic_vector(W_SIZE-1 downto 0);
+		sel						: in std_logic_vector(1 downto 0);
+		m_out						: out std_logic_vector(W_SIZE-1 downto 0));
+	end component;
+	
+	component demux4 is
+	generic (
+		W_SIZE 	: natural := 32
+			);
+	port (
+	 	in0 : in std_logic_vector(W_SIZE-1 downto 0);
+		sel: in std_logic_vector(1 downto 0);
+		out0, out1, out2, out3: out std_logic_vector(7 downto 0));
+	end component;
+	
+	component demux2 is
+	generic (
+		W_SIZE 	: natural := 32
+			);
+	port (
+	 	in0 : in std_logic_vector(W_SIZE-1 downto 0);
+		sel: in std_logic;
+		out0, out1: out std_logic_vector(15 downto 0));
+	end component;
+	
 	
 	component adder is
 	generic (
@@ -184,6 +270,7 @@ package mips_pkg is
 	port (
 		op_alu		: in std_logic_vector(2 downto 0);
 		funct			: in std_logic_vector(5 downto 0);
+		shift_ctr	: out std_logic;
 		alu_ctr	   : out std_logic_vector(3 downto 0)
 	);
 	end component;
@@ -207,7 +294,10 @@ package mips_pkg is
 		s_aluBin : OUT std_logic_vector (1 DOWNTO 0); 
 		wr_breg	: OUT std_logic;
 		logic_ext: OUT std_logic;
-		s_reg_add: OUT std_logic
+		s_reg_add: OUT std_logic;
+		is_unsigned_s: OUT std_logic;
+		mdr_mux_sel_v: OUT std_logic_vector (1 DOWNTO 0);
+		wdata_mux_sel_v: OUT std_logic_vector (1 DOWNTO 0)
 	);
 	END component;
 	
@@ -238,6 +328,29 @@ component extsgn is
 		);
 end component;
 
+component extsgn8 is
+	generic (
+		IN_SIZE : natural := 8;
+		OUT_SIZE : natural := 32	
+		);
+	port (
+		input : in std_logic_vector(IN_SIZE-1 downto 0);
+		logic_ext : in std_logic;
+		output: out std_logic_vector(OUT_SIZE-1 downto 0)
+		);
+end component;
+
+component extsgn_shift is
+	generic (
+		IN_SIZE : natural := 5;
+		OUT_SIZE : natural := 32	
+		);
+	port (
+		input : in std_logic_vector(IN_SIZE-1 downto 0);
+		output: out std_logic_vector(OUT_SIZE-1 downto 0)
+		);
+end component;
+
 component sig_ext is
 	port (
 		imm16	: in std_logic_vector(WORD_SIZE/2 - 1 downto 0);
@@ -251,6 +364,7 @@ component mips_mem is
 		WADDR : natural := IMEM_ADDR);
 	port (
 		address	: IN STD_LOGIC_VECTOR (WADDR-1 DOWNTO 0);
+		byteena	: IN STD_LOGIC_VECTOR (3 DOWNTO 0) :=  (OTHERS => '1');
 		clk		: IN STD_LOGIC;
 		data		: IN STD_LOGIC_VECTOR (WIDTH-1 DOWNTO 0);
 		wren		: IN STD_LOGIC ;
@@ -268,13 +382,8 @@ component data_mem is
 	);
 end component;
 	
---	procedure mux2x1 (signal x0, x1	: in std_logic_vector(WORD_SIZE-1 downto 0); 
---							signal sel	: in std_logic;
---							signal z 	: out std_logic_vector(WORD_SIZE-1 downto 0) );
-	
 	
 end mips_pkg;
-
 
 package body mips_pkg is
 
